@@ -25,7 +25,7 @@ private:
 public:
     Paddle();
     Paddle(int screenX, int screenY);
-    ~Paddle();
+    //~Paddle();
     Rect GetRect();
     void SetMovementState(int state);
     void Update(long fps);

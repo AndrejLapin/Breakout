@@ -11,40 +11,15 @@ cmake_minimum_required(VERSION 3.4.1)
 # Gradle automatically packages shared libraries with your APK.
 
 add_library( # Sets the name of the library.
-             native-lib
-
-             # Sets the library as a shared library.
-             SHARED
-
-             # Provides a relative path to your source file(s).
-             native-lib.cpp )
-
-add_library( # Sets the name of the library.
-        Paddle
-
-        # Sets the library as a shared library.
-        MODULE
-
-        # Provides a relative path to your source file(s).
-        Paddle.cpp )
-
-add_library( # Sets the name of the library.
-        Rect
+        native-lib
 
         # Sets the library as a shared library.
         SHARED
 
         # Provides a relative path to your source file(s).
-        Rect.cpp )
+        native-lib.cpp PhysicsEngine.cpp Paddle.cpp Paddle.h Rect.cpp Rect.h)
 
-add_library( # Sets the name of the library.
-        PhysicsEngine
-
-        # Sets the library as a shared library.
-        SHARED
-
-        # Provides a relative path to your source file(s).
-        PhysicsEngine.cpp )
+target_include_directories(native-lib PUBLIC .)
 
 # Searches for a specified prebuilt library and stores the path as a
 # variable. Because CMake includes system libraries in the search path by

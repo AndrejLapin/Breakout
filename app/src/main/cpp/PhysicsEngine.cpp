@@ -1,25 +1,40 @@
-//
-// Created by USER on 2020-10-08.
-//
-
-#include "PhysicsEngine.h"
+#include <jni.h>
 #include "Paddle.h"
-#include "jni.h"
 
-PhysicsEngine::PhysicsEngine(int screenX, int screenY)
-{
-    playerPaddle = new Paddle(screenX, screenY);
-}
+Paddle playerPaddle;
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_andrej_breakoutcpp_BreakoutEngine_Init(JNIEnv *env, jobject thiz,
-        jint screenX,jint screenY)
+Java_com_andrej_breakoutcpp_BreakoutEngine_Init(JNIEnv *env, jobject,
+                                                jint screenX,jint screenY)
 {
-    PhysicsEngine(screenX, screenY);
+    playerPaddle = Paddle(screenX, screenY);
 }
 
-PhysicsEngine::~PhysicsEngine()
+extern "C"
+JNIEXPORT jfloat JNICALL
+Java_com_andrej_breakoutcpp_BreakoutEngine_GetPlayerTop(JNIEnv *env, jobject thiz)
 {
-    delete playerPaddle;
+    return playerPaddle.GetRect().top;
+}
+
+extern "C"
+JNIEXPORT jfloat JNICALL
+Java_com_andrej_breakoutcpp_BreakoutEngine_GetPlayerLeft(JNIEnv *env, jobject thiz)
+{
+    return playerPaddle.GetRect().left;
+}
+
+extern "C"
+JNIEXPORT jfloat JNICALL
+Java_com_andrej_breakoutcpp_BreakoutEngine_GetPlayerRight(JNIEnv *env, jobject thiz)
+{
+    return playerPaddle.GetRect().right;
+}
+
+extern "C"
+JNIEXPORT jfloat JNICALL
+Java_com_andrej_breakoutcpp_BreakoutEngine_GetPlayerBottom(JNIEnv *env, jobject thiz)
+{
+    return playerPaddle.GetRect().bottom;
 }

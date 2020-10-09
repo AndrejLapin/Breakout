@@ -12,7 +12,7 @@ private:
 
 public:
     Rect();
-    Rect(float bottom, float left, float right, float top);
+    Rect(float leftX, float bottomY, float rightX, float topY);
     float bottom;
     float left;
     float right;

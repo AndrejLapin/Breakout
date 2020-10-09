@@ -1,4 +1,5 @@
 #include <jni.h>
+#include "Paddle.h"
 #include <string>
 
 extern "C" JNIEXPORT jstring JNICALL

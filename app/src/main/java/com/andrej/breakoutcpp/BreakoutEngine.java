@@ -103,12 +103,20 @@ public class BreakoutEngine extends SurfaceView implements Runnable
 
             // Draw the bat
             paint.setColor(Color.argb(255, 0, 0, 0));
-            //canvas.drawRect(bat.getRect() ,paint);
+            canvas.drawRect(GetPlayerLeft(), GetPlayerTop(), GetPlayerRight(), GetPlayerBottom() ,paint);
+
+            paint.setColor(Color.argb(255, 255, 255, 255));
+            paint.setTextSize(70);
+            canvas.drawText("PlayerRight: " + GetPlayerRight() + " PlayerTop: " + GetPlayerTop(), 10,80, paint);
 
             ourHolder.unlockCanvasAndPost(canvas);
         }
     }
 
     public native void Init(int screenX, int screenY);
+    public native float GetPlayerTop();
+    public native float GetPlayerLeft();
+    public native float GetPlayerRight();
+    public native float GetPlayerBottom();
 
 }

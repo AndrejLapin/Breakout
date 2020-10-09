@@ -11,7 +11,7 @@ Rect::Rect()
     right = 0;
     top = 0;
 }
-Rect::Rect(float bottomY, float leftX, float rightX, float topY)
+Rect::Rect(float leftX, float bottomY, float rightX, float topY)
 {
     bottom = bottomY;
     left = leftX;

@@ -46,7 +46,8 @@ Rect Paddle::GetRect()
     return *myShape;
 }
 
-Paddle::~Paddle()
+/*Paddle::~Paddle()
 {
+    // call debug method to see if it is deleted right away
     delete myShape;
-}
+}*/

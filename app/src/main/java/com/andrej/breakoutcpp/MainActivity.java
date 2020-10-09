@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.app.Activity;
 import android.graphics.Point;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Display;
 import android.widget.TextView;
 
@@ -16,8 +17,6 @@ public class MainActivity extends Activity
     static
     {
         System.loadLibrary("native-lib");
-        System.loadLibrary("Paddle");
-        System.loadLibrary("PhysicsEngine");
     }
 
     @Override
@@ -31,6 +30,7 @@ public class MainActivity extends Activity
         // Example of a call to a native method
         breakoutEngine = new BreakoutEngine(this, size.x, size.y);
         setContentView(breakoutEngine);
+
     }
 
     @Override
