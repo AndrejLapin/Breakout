@@ -14,9 +14,12 @@ private:
 
     // paddle length
     float length;
+    float height;
     // paddle height will be responsible for radii of round edges
     // X is far left of the rectangle
     float x;
+
+    int xConstraints;
 
 public:
     Paddle();

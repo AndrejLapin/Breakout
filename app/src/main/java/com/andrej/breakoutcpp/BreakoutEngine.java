@@ -126,7 +126,7 @@ public class BreakoutEngine extends SurfaceView implements Runnable
 
             paint.setColor(Color.argb(255, 0, 0, 0));
             paint.setTextSize(70);
-            canvas.drawText("touchX: " + touchX + " holdTime: " + holdTime, 10,80, paint);
+            canvas.drawText("ballX: " + GetBallXPos() + " debug value: " + DebugValue(1), 10,80, paint);
 
             ourHolder.unlockCanvasAndPost(canvas);
         }
@@ -172,12 +172,15 @@ public class BreakoutEngine extends SurfaceView implements Runnable
         return true;
     }
 
+    // Native methods
+
     // Engine methods
     public native void Init(int screenX, int screenY);
     public native void Update(long fps);
     public native void SetOffsetSet(boolean value);
     public native void TouchListener(float touchPointX, float touchPointY);
     public native void SetPaddleIsTouched(boolean value);
+    public native float DebugValue(float value);
 
     // player methods
     public native float GetPlayerTop();

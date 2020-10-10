@@ -8,21 +8,26 @@
 
 #include "Circle.h"
 #include "Paddle.h"
+#include "Movement.h"
 
 class Ball
 {
 private:
-    float forceX, forceY, velocity;
+    Movement myMovement;
     bool ballLaunched;
     Circle myShape;
 public:
     Ball();
     Ball(int screenX, int screenY, Paddle player);
     Circle GetCircle();
-    void Update(long fps, Paddle player);
+    bool Update(Paddle player);
     void AddVelocity(float velocityToAdd);
     bool GetBallLaunched();
     void SetBallLaunched(bool value);
+    void AddXandYDirections(float addX, float addY);
+    Movement GetMovement();
+    void AddRandomVelocityOnHit();
+    void AddPosition(float addX, float addY);
 
 protected:
 
