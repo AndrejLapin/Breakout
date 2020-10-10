@@ -17,6 +17,7 @@ public:
     float left;
     float right;
     float top;
+    //~Rect();
 
 protected:
 

@@ -5,6 +5,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
@@ -28,6 +29,12 @@ public class BreakoutEngine extends SurfaceView implements Runnable
 
     private long timeThisFrame;
 
+    private long holdTime;
+    private long startHoldTime;
+
+    private float touchX;
+    private float touchY;
+
     // Our constructor
     public BreakoutEngine(Context context, int x, int y)
     {
@@ -42,6 +49,12 @@ public class BreakoutEngine extends SurfaceView implements Runnable
         screenY = y;
 
         Init(screenX,screenY);
+
+        holdTime = 0;
+        startHoldTime = 0;
+
+        touchX = 0;
+        touchY = 0;
 
     }
 
@@ -74,7 +87,7 @@ public class BreakoutEngine extends SurfaceView implements Runnable
 
             if (!paused)
             {
-                update(); // should probably replace with cpp function rather than calling Java
+                Update(fps);
             }
 
             draw();
@@ -101,22 +114,82 @@ public class BreakoutEngine extends SurfaceView implements Runnable
             // Set canvas color to blue
             canvas.drawColor(Color.argb(255,26,128,182));
 
-            // Draw the bat
+            // Draw player paddle
             paint.setColor(Color.argb(255, 0, 0, 0));
             canvas.drawRect(GetPlayerLeft(), GetPlayerTop(), GetPlayerRight(), GetPlayerBottom() ,paint);
+            canvas.drawCircle(GetPlayerLeft(), GetPlayerTop() - GetPlayerRadius(), GetPlayerRadius(), paint);
+            canvas.drawCircle(GetPlayerRight(), GetPlayerTop() - GetPlayerRadius(), GetPlayerRadius(), paint);
 
+            // Draw ball
             paint.setColor(Color.argb(255, 255, 255, 255));
+            canvas.drawCircle(GetBallXPos(), GetBallYPos(), GetBallRadius(), paint);
+
+            paint.setColor(Color.argb(255, 0, 0, 0));
             paint.setTextSize(70);
-            canvas.drawText("PlayerRight: " + GetPlayerRight() + " PlayerTop: " + GetPlayerTop(), 10,80, paint);
+            canvas.drawText("touchX: " + touchX + " holdTime: " + holdTime, 10,80, paint);
 
             ourHolder.unlockCanvasAndPost(canvas);
         }
     }
 
+    public void HoldTime(boolean hold)
+    {
+        if(hold)
+        {
+            startHoldTime = System.currentTimeMillis();
+        }
+        else
+        {
+            holdTime = System.currentTimeMillis() - startHoldTime;
+        }
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent motionEvent)
+    {
+        switch (motionEvent.getAction() & MotionEvent.ACTION_MASK)
+        {
+
+            case MotionEvent.ACTION_DOWN:
+                paused = false;
+                SetOffsetSet(false);
+                HoldTime(true);
+
+                break;
+
+            case MotionEvent.ACTION_MOVE:
+                touchX = motionEvent.getX();
+                touchY = motionEvent.getY();
+                TouchListener(motionEvent.getX(), motionEvent.getY());
+                break;
+
+            case MotionEvent.ACTION_UP:
+                SetPaddleIsTouched(false);
+                HoldTime(false);
+                LaunchBall(holdTime);
+                break;
+        }
+        return true;
+    }
+
+    // Engine methods
     public native void Init(int screenX, int screenY);
+    public native void Update(long fps);
+    public native void SetOffsetSet(boolean value);
+    public native void TouchListener(float touchPointX, float touchPointY);
+    public native void SetPaddleIsTouched(boolean value);
+
+    // player methods
     public native float GetPlayerTop();
     public native float GetPlayerLeft();
     public native float GetPlayerRight();
     public native float GetPlayerBottom();
+    public native float GetPlayerRadius();
+    public native void LaunchBall(long holdTime);
+
+    // ball methods
+    public native float GetBallXPos();
+    public native float GetBallYPos();
+    public native float GetBallRadius();
 
 }

@@ -3,6 +3,7 @@
 #include "jni.h"
 #include "Rect.h"
 
+
 Paddle::Paddle()
 {
     length = 0;
@@ -13,11 +14,6 @@ Paddle::Paddle()
 
     // setting top y coordinate
     float y = 0;
-
-    // setting paddle speed
-    paddleSpeed = 0;
-
-    currentMove = Stop;
 }
 
 Paddle::Paddle(int screenX, int screenY)
@@ -32,19 +28,23 @@ Paddle::Paddle(int screenX, int screenY)
     float y = screenY - screenY/21.6;
 
     // creating rectangle shape for paddle
-    myShape = new Rect(x, y, x+length, y+height);
-
-    // setting paddle speed
-    paddleSpeed = screenX/1.92;
-
-    currentMove = Stop;
+    myShape = Rect(x, y, x+length, y+height); // risk of overflow, can allocate memory with new, but have problems with destructors
 }
 
 extern "C" JNIEXPORT
 Rect Paddle::GetRect()
 {
-    return *myShape;
+    return myShape;
 }
+
+void Paddle::ChangePaddlePosition(float xOffset)
+{
+    x -= xOffset;
+    myShape.left = x;
+    myShape.right = x + length;
+}
+
+
 
 /*Paddle::~Paddle()
 {

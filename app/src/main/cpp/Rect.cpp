@@ -1,6 +1,3 @@
-//
-// Created by USER on 2020-10-08.
-//
 
 #include "Rect.h"
 
@@ -18,3 +15,8 @@ Rect::Rect(float leftX, float bottomY, float rightX, float topY)
     right = rightX;
     top = topY;
 }
+
+/*Rect::~Rect()
+{
+
+}*/
