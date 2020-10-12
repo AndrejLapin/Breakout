@@ -4,6 +4,7 @@
 #include "Paddle.h"
 #include "Ball.h"
 #include "Brick.h"
+#include "Button.h"
 
 Paddle *playerPaddle;
 Ball *ball;
@@ -18,13 +19,17 @@ int numBricks;
 int numBricksToDestroy; // amount of bricks left to destroy to advance to the next level
 int lives;
 int score;
+bool brickBreaking;
 Brick *bricks[200];
+Button *btnRestart;
+Button *btnQuit;
 Vector2 touchValues;
 
 float where; // debug value
 
 // =============================== Engine Methods =================================
 
+void Init(jint x, jint y);
 void SetupLevel(float screenX,float screenY,Paddle playerPaddle);
 int FindSign(float value);
 void CheckCollisionsAddDistance(long fps, float velocity);
@@ -32,14 +37,24 @@ void ProcessMinimalStep(long fps, float velocity);
 void AddPositionToBall(long fps, float velocity);
 bool CirclesCollide(float x1, float y1, float r1, float x2, float y2, float r2);
 float CircleDistanceEntered(float x1, float y1, float r1, float x2, float y2, float r2);
-bool CircleRectIntersect(float x, float y, float r, float left, float top, float right, float bottom);
 bool CircleRectIntersect(Circle circle, Rect rect);
+void Destroy();
 void MovePaddle(float touchPointX, float touchPointY);
+
+void GameOver();
+
+
+void RestartGame();
 
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_andrej_breakoutcpp_BreakoutEngine_Init(JNIEnv *env, jobject,
                                                 jint screenX,jint screenY)
+{
+    Init(screenX, screenY);
+}
+
+void Init(int screenX, int screenY)
 {
     screenWidth = screenX;
     screenHeight = screenY;
@@ -47,8 +62,11 @@ Java_com_andrej_breakoutcpp_BreakoutEngine_Init(JNIEnv *env, jobject,
     lives = 3;
     score = 0;
     SetupLevel(screenX, screenY, *playerPaddle);
+    brickBreaking = true;
+    btnRestart = new Button(40, 530, 310, 100, "Restart?", 80);
+    btnQuit = new Button(40, 700, 310, 100, "Quit?", 80);
+
     where = 0; // debug value
-    //collisionWithPaddle = false;
 }
 
 void SetupLevel(float screenX,float screenY,Paddle playerPaddle)
@@ -62,7 +80,7 @@ void SetupLevel(float screenX,float screenY,Paddle playerPaddle)
 
     for (int column = 1; column < 14; column++)
     {
-        for(int row = 2; row < 10; row++)
+        for(int row = 3; row < 10; row++)
         {
             bricks[numBricks] = new Brick(row, column, brickWidth, brickHeight, 1);
             numBricks ++;
@@ -80,6 +98,14 @@ Java_com_andrej_breakoutcpp_BreakoutEngine_Update(JNIEnv *env, jobject thiz,
     if(ball->Update(*playerPaddle))
     {
         ProcessMinimalStep(fps, ball->GetMovement().velocity);
+    }
+
+    if(numBricksToDestroy <= 0)
+    {
+        Destroy();
+        playerPaddle = new Paddle(screenWidth, screenHeight);
+        btnRestart = new Button(40, 530, 310, 100, "Restart?", 80);
+        SetupLevel(screenWidth, screenHeight, *playerPaddle);
     }
 }
 
@@ -99,7 +125,7 @@ Java_com_andrej_breakoutcpp_BreakoutEngine_DebugValue(JNIEnv *env, jobject thiz,
 // to have linear interpolation of my ball
 void ProcessMinimalStep(long fps, float velocity)
 {
-    float minimalStep = 0.5; // decrease minimal step value to get a more precise collision
+    float minimalStep = 1; // decrease minimal step value to get a more precise collision but this in turn increases amount of calculations that has to be done
     velocity -= minimalStep;
     if(velocity < 0)
     {
@@ -124,13 +150,14 @@ void CheckCollisionsAddDistance(long fps, float velocity)
     {
         if (bricks[i]->GetIsAlive())
         {
-            if (CircleRectIntersect(ball->GetCircle(), bricks[i]->GetRect())) //parameters for old function ballX, ballY, ball->GetCircle().radius, bricks[i]->GetRect().left, bricks[i]->GetRect().top, bricks[i]->GetRect().right, bricks[i]->GetRect().bottom
+            if (CircleRectIntersect(ball->GetCircle(), bricks[i]->GetRect()))
             {
                 if(bricks[i]->SubtractLife())
                 {
+                    score += 10;
                     numBricksToDestroy--;
                 }
-                //firs we need to calculate collision normal
+                //find closest normal
                 float yDistance1 = abs(ballY - bricks[i]->GetRect().top);
                 float yDistance2 = abs(ballY - bricks[i]->GetRect().bottom);
                 float xDistance1 = abs(ballX - bricks[i]->GetRect().right);
@@ -175,12 +202,8 @@ void CheckCollisionsAddDistance(long fps, float velocity)
         float fullVector;
         //When its within we check for collision
         // Checking rectangle
-        if(CircleRectIntersect(ball->GetCircle(), playerPaddle->GetRect())) // old parameters for old function ballX, ballY, ball->GetCircle().radius,playerPaddle->GetRect().left, playerPaddle->GetRect().top, playerPaddle->GetRect().right, playerPaddle->GetRect().bottom
+        if(CircleRectIntersect(ball->GetCircle(), playerPaddle->GetRect()))
         {
-            //collisionWithPaddle = true;
-            // velocity used this call before collision
-            //velocityUsed = (playerPaddle->GetRect().bottom - ball->GetCircle().yPos - ball->GetCircle().radius)*fps/ball->GetMovement().directionY;
-
             ball->AddXandYDirections(0, -ball->GetMovement().directionY*2);
             ball->AddRandomVelocityOnHit();
             ball->AddVelocity(10);
@@ -191,10 +214,6 @@ void CheckCollisionsAddDistance(long fps, float velocity)
         else if (CirclesCollide(ballX, ballY,ball->GetCircle().radius,
                                 playerPaddle->GetRect().left, playerPaddle->GetRect().top-playerPaddle->GetRadius(), playerPaddle->GetRadius()))
         {
-            //collisionWithPaddle = true;
-            // velocity used this call before collision
-            //velocityUsed = velocity - CircleDistanceEntered(newBallXPos, newBallYPos,ball->GetCircle().radius, playerPaddle->GetRect().left, playerPaddle->GetRect().top-playerPaddle->GetRadius(), playerPaddle->GetRadius());
-
             xDistance = ballX - playerPaddle->GetRect().left;
             yDistance = ballY - playerPaddle->GetRect().top-playerPaddle->GetRadius();
             fullVector = abs(xDistance + yDistance);
@@ -210,10 +229,6 @@ void CheckCollisionsAddDistance(long fps, float velocity)
         else if (CirclesCollide(ballX, ballY,ball->GetCircle().radius,
                                 playerPaddle->GetRect().right, playerPaddle->GetRect().top-playerPaddle->GetRadius(), playerPaddle->GetRadius()))
         {
-            //collisionWithPaddle = true;
-            // velocity used this call before collision
-            //velocityUsed = velocity - CircleDistanceEntered(newBallXPos, newBallYPos,ball->GetCircle().radius,playerPaddle->GetRect().right, playerPaddle->GetRect().top-playerPaddle->GetRadius(), playerPaddle->GetRadius());
-
             // add to direction vector
             xDistance = ballX - playerPaddle->GetRect().right;
             yDistance = ballY - playerPaddle->GetRect().top-playerPaddle->GetRadius();
@@ -231,9 +246,6 @@ void CheckCollisionsAddDistance(long fps, float velocity)
     // checking if the ball hits top of the screen
     if(ballY - ball->GetCircle().radius < 0 )
     {
-        // velocity this call used before collision
-        //velocityUsed = (ball->GetMovement().directionY*velocity/fps - newBallY)*fps/ball->GetMovement().directionY;
-
         // reverses ball Y direction
         ball->AddXandYDirections(0, -ball->GetMovement().directionY*2);
         // adds random velocity on hit to simulate surface roughness
@@ -242,13 +254,18 @@ void CheckCollisionsAddDistance(long fps, float velocity)
         AddPositionToBall(fps, velocity);
         return;
     }
-    // this should be reasserting the ball and deducting a life
+    // ball hits bottom of the screen, and you loose a life
     if(ballY + ball->GetCircle().radius > screenHeight)
     {
         ballCount--;
         delete ball;
         if (ballCount <= 0)
         {
+            lives--;
+            if(lives <= 0)
+            {
+                GameOver();
+            }
             ball = new Ball(screenWidth, screenHeight, *playerPaddle);
             ballCount++;
         }
@@ -256,9 +273,6 @@ void CheckCollisionsAddDistance(long fps, float velocity)
     }
     if(ballX - ball->GetCircle().radius < 0)
     {
-        // velocity this call used before collision
-        //velocityUsed = (ball->GetMovement().directionX*velocity/fps - newBallX)*fps/ball->GetMovement().directionX;
-
         // reverses ball X direction
         ball->AddXandYDirections(-ball->GetMovement().directionX*2, 0);
         // adds random velocity on hit to simulate surface roughness
@@ -269,9 +283,6 @@ void CheckCollisionsAddDistance(long fps, float velocity)
     }
     if (ballX + ball->GetCircle().radius > screenWidth)
     {
-        // velocity used this call before collision
-        //velocityUsed = (screenWidth - ball->GetCircle().xPos - ball->GetCircle().radius)*fps/ball->GetMovement().directionX;
-
         // reverses ball X direction
         ball->AddXandYDirections(-ball->GetMovement().directionX*2, 0);
         // adds random velocity on hit to simulate surface roughness
@@ -283,6 +294,11 @@ void CheckCollisionsAddDistance(long fps, float velocity)
 
     AddPositionToBall(fps, velocity);
 
+}
+
+void GameOver()
+{
+    brickBreaking = false;
 }
 
 bool CircleRectIntersect(Circle circle, Rect rect)
@@ -302,19 +318,7 @@ bool CircleRectIntersect(Circle circle, Rect rect)
     return (cornerDistanceSQ <= pow((circle.radius),2));
 }
 
-bool CircleRectIntersect(float x, float y, float r, float left, float top, float right, float bottom)
-{
-    float distanceSQToBottomLeft = pow((x - left),2) + pow((y - bottom),2);
-    float distanceSQToBottomRight = pow((x - right),2) + pow((y - bottom),2);
-    float distanceSQToTopLeft = pow((x - left),2) + pow((y - top),2);
-    float distanceSQToTopRight = pow((x - right),2) + pow((y - top),2);
-    float radiusSq = r*r;
-    return (x < right && x > left  && y < top && y > bottom) ||
-            (distanceSQToBottomLeft <= radiusSq) || (distanceSQToBottomRight <= radiusSq) ||
-            (distanceSQToTopLeft <= radiusSq) || (distanceSQToTopRight <= radiusSq);
-}
-
-bool CirclesCollide(float x1, float y1, float r1, float x2, float y2, float r2)
+bool CirclesCollide(float x1, float y1, float r1, float x2, float y2, float r2) //// TO DO: change parameters so it would only accept 2 circles
 {
     float x = x1 - x2;
     float y = y1 - y2;
@@ -353,30 +357,52 @@ JNIEXPORT void JNICALL
 Java_com_andrej_breakoutcpp_BreakoutEngine_TouchListener(JNIEnv *env, jobject thiz,
                                                          jfloat touchPointX, jfloat touchPointY)
 {
-    if (!paddleIsTouched && touchPointX < playerPaddle->GetRect().right + 90 && touchPointX > playerPaddle->GetRect().left - 90
-     && touchPointY < playerPaddle->GetRect().top + 90 && touchPointY > playerPaddle->GetRect().bottom - 90)
+    if(brickBreaking)
     {
-        paddleIsTouched = true;
-    }
-
-    if (paddleIsTouched)
-    {
-        if(!offsetSet)
+        if (!paddleIsTouched && touchPointX < playerPaddle->GetRect().right + 90 && touchPointX > playerPaddle->GetRect().left - 90
+            && touchPointY < playerPaddle->GetRect().top + 90 && touchPointY > playerPaddle->GetRect().bottom - 90)
         {
-            xOffset = 0;
-            offsetSet = true;
+            paddleIsTouched = true;
+        }
+
+        if (paddleIsTouched)
+        {
+            if(!offsetSet)
+            {
+                xOffset = 0;
+                offsetSet = true;
+                xOffsetStart = touchPointX;
+            }
+            else
+            {
+                xOffset = xOffsetStart - touchPointX;
+            }
+            playerPaddle->ChangePaddlePosition(xOffset);
             xOffsetStart = touchPointX;
         }
-        else
-        {
-            xOffset = xOffsetStart - touchPointX;
-        }
-        playerPaddle->ChangePaddlePosition(xOffset);
-        xOffsetStart = touchPointX;
     }
-    // used this before to try to prevent the paddle from moving into the ball
-    //touchValues.x = touchPointX;
-    //touchValues.y = touchPointY;
+
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_andrej_breakoutcpp_BreakoutEngine_ButtonTouchListener(JNIEnv *env, jobject thiz,
+                                                               jfloat touchPointX,
+                                                               jfloat touchPointY)
+{
+    if(!brickBreaking)
+    {
+        if(CircleRectIntersect(Circle(touchPointX, touchPointY, 0), btnRestart->GetRect()))
+        {
+            RestartGame();
+        }
+    }
+}
+
+void RestartGame()
+{
+    Destroy();
+    Init(screenWidth, screenHeight);
 }
 
 extern "C"
@@ -391,12 +417,39 @@ extern "C"
 JNIEXPORT void JNICALL
 Java_com_andrej_breakoutcpp_BreakoutEngine_Destroy(JNIEnv *env, jobject thiz)
 {
+    Destroy();
+}
+
+void Destroy()
+{
     delete playerPaddle;
     delete ball;
+    delete btnRestart;
     for(int i = 0; i < numBricks; i++)
     {
         delete bricks[i];
     }
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_andrej_breakoutcpp_BreakoutEngine_GetLives(JNIEnv *env, jobject thiz)
+{
+    return lives;
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_andrej_breakoutcpp_BreakoutEngine_GetScore(JNIEnv *env, jobject thiz)
+{
+    return score;
+}
+
+extern "C"
+JNIEXPORT jboolean JNICALL
+Java_com_andrej_breakoutcpp_BreakoutEngine_BrickBracking(JNIEnv *env, jobject thiz)
+{
+    return brickBreaking;
 }
 
 // =============================== Player Methods =================================
@@ -469,7 +522,7 @@ Java_com_andrej_breakoutcpp_BreakoutEngine_LaunchBall(JNIEnv *env, jobject thiz,
     if(holdTime <= 150 && !ball->GetBallLaunched())
     {
         ball->SetBallLaunched(true);
-        ball->AddVelocity(500);
+        ball->AddVelocity(600);
     }
 }
 
@@ -538,4 +591,83 @@ JNIEXPORT jfloat JNICALL
 Java_com_andrej_breakoutcpp_BreakoutEngine_GetBrickBottom(JNIEnv *env, jobject thiz, jint index)
 {
     return bricks[index]->GetRect().bottom;
+}
+
+// Button Methods
+
+extern "C"
+JNIEXPORT jfloat JNICALL
+Java_com_andrej_breakoutcpp_BreakoutEngine_GetButtonRestartTop(JNIEnv *env, jobject thiz)
+{
+    return btnRestart->GetRect().top;
+}
+extern "C"
+JNIEXPORT jfloat JNICALL
+Java_com_andrej_breakoutcpp_BreakoutEngine_GetButtonRestartLeft(JNIEnv *env, jobject thiz)
+{
+    return btnRestart->GetRect().left;
+}
+extern "C"
+JNIEXPORT jfloat JNICALL
+Java_com_andrej_breakoutcpp_BreakoutEngine_GetButtonRestartRight(JNIEnv *env, jobject thiz)
+{
+    return btnRestart->GetRect().right;
+}
+extern "C"
+JNIEXPORT jfloat JNICALL
+Java_com_andrej_breakoutcpp_BreakoutEngine_GetButtonRestartBottom(JNIEnv *env, jobject thiz)
+{
+    return btnRestart->GetRect().bottom;
+}
+extern "C"
+JNIEXPORT jstring JNICALL
+Java_com_andrej_breakoutcpp_BreakoutEngine_GetButtonRestartText(JNIEnv *env, jobject thiz)
+{
+    return env->NewStringUTF(btnRestart->GetText().c_str());
+}
+
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_andrej_breakoutcpp_BreakoutEngine_GetButtonRestartTextSize(JNIEnv *env, jobject thiz)
+{
+    return btnRestart->GetTextSize();
+}
+
+
+extern "C"
+JNIEXPORT jfloat JNICALL
+Java_com_andrej_breakoutcpp_BreakoutEngine_GetButtonQuitTop(JNIEnv *env, jobject thiz)
+{
+    return btnQuit->GetRect().top;
+}
+extern "C"
+JNIEXPORT jfloat JNICALL
+Java_com_andrej_breakoutcpp_BreakoutEngine_GetButtonQuitLeft(JNIEnv *env, jobject thiz)
+{
+    return btnQuit->GetRect().left;
+}
+extern "C"
+JNIEXPORT jfloat JNICALL
+Java_com_andrej_breakoutcpp_BreakoutEngine_GetButtonQuitRight(JNIEnv *env, jobject thiz)
+{
+    return btnQuit->GetRect().right;
+}
+extern "C"
+JNIEXPORT jfloat JNICALL
+Java_com_andrej_breakoutcpp_BreakoutEngine_GetButtonQuitBottom(JNIEnv *env, jobject thiz)
+{
+    return btnQuit->GetRect().bottom;
+}
+extern "C"
+JNIEXPORT jstring JNICALL
+Java_com_andrej_breakoutcpp_BreakoutEngine_GetButtonQuitText(JNIEnv *env, jobject thiz)
+{
+    return env->NewStringUTF(btnQuit->GetText().c_str());
+}
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_andrej_breakoutcpp_BreakoutEngine_GetButtonQuitTextSize(JNIEnv *env, jobject thiz)
+{
+    return btnQuit->GetTextSize();
 }

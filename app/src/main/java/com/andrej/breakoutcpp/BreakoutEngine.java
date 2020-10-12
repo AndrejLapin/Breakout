@@ -87,7 +87,10 @@ public class BreakoutEngine extends SurfaceView implements Runnable
 
             if (!paused)
             {
-                Update(fps);
+                if(BrickBracking())
+                {
+                    Update(fps);
+                }
             }
 
             draw();
@@ -106,34 +109,66 @@ public class BreakoutEngine extends SurfaceView implements Runnable
         {
             canvas = ourHolder.lockCanvas();
 
-            // Set canvas color to blue
-            canvas.drawColor(Color.argb(255,26,128,182));
 
-            // Draw ball
-            paint.setColor(Color.argb(255, 255, 255, 255));
-            canvas.drawCircle(GetBallXPos(), GetBallYPos(), GetBallRadius(), paint);
-
-            // Draw player paddle
-            paint.setColor(Color.argb(255, 0, 0, 0));
-            canvas.drawRect(GetPlayerLeft(), GetPlayerTop(), GetPlayerRight(), GetPlayerBottom() ,paint);
-            canvas.drawCircle(GetPlayerLeft(), GetPlayerTop() - GetPlayerRadius(), GetPlayerRadius(), paint);
-            canvas.drawCircle(GetPlayerRight(), GetPlayerTop() - GetPlayerRadius(), GetPlayerRadius(), paint);
-
-
-            // Draw bricks
-            paint.setColor(Color.argb(255, 249, 129, 0));
-            //canvas.drawRect(GetBrickLeft(0), GetBrickTop(0), GetBrickRight(0), GetBrickBottom(0), paint);
-            for (int i = 0; i < GetNumBricks(); i++)
+            if(!BrickBracking())
             {
-                if (GetIsAlive(i))
+                // Set canvas color to blue
+                canvas.drawColor(Color.argb(255,26,128,182));
+
+                // Draw ball
+                paint.setColor(Color.argb(255, 255, 255, 255));
+                canvas.drawCircle(GetBallXPos(), GetBallYPos(), GetBallRadius(), paint);
+
+                // Draw player paddle
+                paint.setColor(Color.argb(255, 0, 0, 0));
+                canvas.drawRect(GetPlayerLeft(), GetPlayerTop(), GetPlayerRight(), GetPlayerBottom() ,paint);
+                canvas.drawCircle(GetPlayerLeft(), GetPlayerTop() - GetPlayerRadius(), GetPlayerRadius(), paint);
+                canvas.drawCircle(GetPlayerRight(), GetPlayerTop() - GetPlayerRadius(), GetPlayerRadius(), paint);
+
+
+                // Draw bricks
+                paint.setColor(Color.argb(255, 249, 129, 0));
+                //canvas.drawRect(GetBrickLeft(0), GetBrickTop(0), GetBrickRight(0), GetBrickBottom(0), paint);
+                for (int i = 0; i < GetNumBricks(); i++)
                 {
-                    canvas.drawRect(GetBrickLeft(i), GetBrickTop(i), GetBrickRight(i), GetBrickBottom(i), paint);
+                    if (GetIsAlive(i))
+                    {
+                        canvas.drawRect(GetBrickLeft(i), GetBrickTop(i), GetBrickRight(i), GetBrickBottom(i), paint);
+                    }
                 }
+
+                paint.setColor(Color.argb(255, 0, 0, 0));
+                paint.setTextSize(70);
+                canvas.drawText("Score: " + GetScore(), 10,60, paint);
+                canvas.drawText("Lives: " + GetLives(), 1550,60, paint);
+            }
+            else
+            {
+                // set canvas color
+                canvas.drawColor(Color.argb(255,26,128,182));
+
+                paint.setColor(Color.argb(255, 0, 0, 0));
+                paint.setTextSize(300);
+                canvas.drawText("Game Over", 10,300, paint);
+                paint.setTextSize(100);
+                canvas.drawText("Your final score: " + GetScore(), 40,500, paint);
+
+                // Draw restart button
+                paint.setColor(Color.argb(255, 249, 129, 0));
+                canvas.drawRect(GetButtonRestartLeft(), GetButtonRestartTop(), GetButtonRestartRight(), GetButtonRestartBottom(), paint);
+                paint.setColor(Color.argb(255, 255, 255, 255));
+                paint.setTextSize(GetButtonRestartTextSize());
+                canvas.drawText(GetButtonRestartText(), GetButtonRestartLeft(), GetButtonRestartTop() - 24, paint);
+
+                // Draw Quit button
+                paint.setColor(Color.argb(255, 249, 129, 0));
+                canvas.drawRect(GetButtonQuitLeft(), GetButtonQuitTop(), GetButtonQuitRight(), GetButtonQuitBottom(), paint);
+                paint.setColor(Color.argb(255, 255, 255, 255));
+                paint.setTextSize(GetButtonRestartTextSize());
+                canvas.drawText(GetButtonQuitText(), GetButtonQuitLeft(), GetButtonQuitTop() - 24, paint);
+
             }
 
-            paint.setColor(Color.argb(255, 0, 0, 0));
-            paint.setTextSize(70);
-            canvas.drawText("ballX " + GetBallXPos() + " where??: " + DebugValue(1), 10,80, paint);
 
             ourHolder.unlockCanvasAndPost(canvas);
         }
@@ -159,6 +194,7 @@ public class BreakoutEngine extends SurfaceView implements Runnable
 
             case MotionEvent.ACTION_DOWN:
                 paused = false;
+                ButtonTouchListener(motionEvent.getX(), motionEvent.getY());
                 SetOffsetSet(false);
                 HoldTime(true);
 
@@ -182,7 +218,7 @@ public class BreakoutEngine extends SurfaceView implements Runnable
     // called when OS calls onDestroy
     public void destroy()
     {
-
+        Destroy();
     }
 
     // Native methods
@@ -192,9 +228,13 @@ public class BreakoutEngine extends SurfaceView implements Runnable
     public native void Update(long fps);
     public native void SetOffsetSet(boolean value);
     public native void TouchListener(float touchPointX, float touchPointY);
+    public native void ButtonTouchListener(float touchPointX, float touchPointY);
     public native void SetPaddleIsTouched(boolean value);
     public native float DebugValue(float value);
+    public native int GetLives();
+    public native int GetScore();
     public native void Destroy();
+    public native boolean BrickBracking(); // returns true if we havent lost yet
 
     // player methods
     public native float GetPlayerTop();
@@ -216,4 +256,19 @@ public class BreakoutEngine extends SurfaceView implements Runnable
     public native float GetBrickLeft(int index);
     public native float GetBrickRight(int index);
     public native float GetBrickBottom(int index);
+
+    // button methods
+    public native float GetButtonRestartTop();
+    public native float GetButtonRestartLeft();
+    public native float GetButtonRestartRight();
+    public native float GetButtonRestartBottom();
+    public native String GetButtonRestartText();
+    public native int GetButtonRestartTextSize();
+
+    public native float GetButtonQuitTop();
+    public native float GetButtonQuitLeft();
+    public native float GetButtonQuitRight();
+    public native float GetButtonQuitBottom();
+    public native String GetButtonQuitText();
+    public native int GetButtonQuitTextSize();
 }

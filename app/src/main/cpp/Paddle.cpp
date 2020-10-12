@@ -20,8 +20,8 @@ Paddle::Paddle()
 
 Paddle::Paddle(int screenX, int screenY)
 {
-    length = screenX/12; // 8.7, 20
-    height = screenY/20; // 27, 30
+    length = screenX/12; // 8.7
+    height = screenY/20; // 27
 
     // puts the paddle right in the middle of the screen
     x = screenX/2 - length/2;
