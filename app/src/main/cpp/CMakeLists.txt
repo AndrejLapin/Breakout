@@ -17,7 +17,7 @@ add_library( # Sets the name of the library.
         SHARED
 
         # Provides a relative path to your source file(s).
-        native-lib.cpp PhysicsEngine.cpp Paddle.cpp Paddle.h Rect.cpp Rect.h Ball.cpp Ball.h Circle.cpp Circle.h Movement.cpp Movement.h)
+        native-lib.cpp PhysicsEngine.cpp Paddle.cpp Paddle.h Rect.cpp Rect.h Ball.cpp Ball.h Circle.cpp Circle.h Movement.cpp Movement.h Brick.cpp Brick.h)
 
 target_include_directories(native-lib PUBLIC .)
 

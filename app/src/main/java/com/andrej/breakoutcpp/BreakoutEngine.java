@@ -100,11 +100,6 @@ public class BreakoutEngine extends SurfaceView implements Runnable
         }
     }
 
-    private void update() // probably better to replace
-    {
-        // this method will be calling c++ calculation methods
-    }
-
     private void draw()
     {
         if (ourHolder.getSurface().isValid())
@@ -114,19 +109,31 @@ public class BreakoutEngine extends SurfaceView implements Runnable
             // Set canvas color to blue
             canvas.drawColor(Color.argb(255,26,128,182));
 
+            // Draw ball
+            paint.setColor(Color.argb(255, 255, 255, 255));
+            canvas.drawCircle(GetBallXPos(), GetBallYPos(), GetBallRadius(), paint);
+
             // Draw player paddle
             paint.setColor(Color.argb(255, 0, 0, 0));
             canvas.drawRect(GetPlayerLeft(), GetPlayerTop(), GetPlayerRight(), GetPlayerBottom() ,paint);
             canvas.drawCircle(GetPlayerLeft(), GetPlayerTop() - GetPlayerRadius(), GetPlayerRadius(), paint);
             canvas.drawCircle(GetPlayerRight(), GetPlayerTop() - GetPlayerRadius(), GetPlayerRadius(), paint);
 
-            // Draw ball
-            paint.setColor(Color.argb(255, 255, 255, 255));
-            canvas.drawCircle(GetBallXPos(), GetBallYPos(), GetBallRadius(), paint);
+
+            // Draw bricks
+            paint.setColor(Color.argb(255, 249, 129, 0));
+            //canvas.drawRect(GetBrickLeft(0), GetBrickTop(0), GetBrickRight(0), GetBrickBottom(0), paint);
+            for (int i = 0; i < GetNumBricks(); i++)
+            {
+                if (GetIsAlive(i))
+                {
+                    canvas.drawRect(GetBrickLeft(i), GetBrickTop(i), GetBrickRight(i), GetBrickBottom(i), paint);
+                }
+            }
 
             paint.setColor(Color.argb(255, 0, 0, 0));
             paint.setTextSize(70);
-            canvas.drawText("ballX: " + GetBallXPos() + " debug value: " + DebugValue(1), 10,80, paint);
+            canvas.drawText("ballX " + GetBallXPos() + " where??: " + DebugValue(1), 10,80, paint);
 
             ourHolder.unlockCanvasAndPost(canvas);
         }
@@ -172,6 +179,12 @@ public class BreakoutEngine extends SurfaceView implements Runnable
         return true;
     }
 
+    // called when OS calls onDestroy
+    public void destroy()
+    {
+
+    }
+
     // Native methods
 
     // Engine methods
@@ -181,6 +194,7 @@ public class BreakoutEngine extends SurfaceView implements Runnable
     public native void TouchListener(float touchPointX, float touchPointY);
     public native void SetPaddleIsTouched(boolean value);
     public native float DebugValue(float value);
+    public native void Destroy();
 
     // player methods
     public native float GetPlayerTop();
@@ -195,4 +209,11 @@ public class BreakoutEngine extends SurfaceView implements Runnable
     public native float GetBallYPos();
     public native float GetBallRadius();
 
+    //brick methods
+    public native int GetNumBricks();
+    public native boolean GetIsAlive(int index);
+    public native float GetBrickTop(int index);
+    public native float GetBrickLeft(int index);
+    public native float GetBrickRight(int index);
+    public native float GetBrickBottom(int index);
 }

@@ -27,6 +27,7 @@ public:
     //~Paddle();
     Rect GetRect();
     void ChangePaddlePosition(float xOffset);
+    float GetRadius();
 
 
 protected:

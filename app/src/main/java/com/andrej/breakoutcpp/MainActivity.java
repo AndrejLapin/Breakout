@@ -52,6 +52,14 @@ public class MainActivity extends Activity
         breakoutEngine.pause();
     }
 
+    @Override
+    protected void onDestroy()
+    {
+        super.onDestroy();
+
+        breakoutEngine.destroy();
+    }
+
     /**
      * A native method that is implemented by the 'native-lib' native library,
      * which is packaged with this application.

@@ -20,14 +20,14 @@ Paddle::Paddle()
 
 Paddle::Paddle(int screenX, int screenY)
 {
-    length = screenX/8.7;
-    height = screenY/27;
+    length = screenX/12; // 8.7, 20
+    height = screenY/20; // 27, 30
 
     // puts the paddle right in the middle of the screen
     x = screenX/2 - length/2;
 
     // setting top y coordinate
-    float y = screenY - screenY/21.6;
+    float y = screenY - screenY/19;
 
     // creating rectangle shape for paddle
     myShape = Rect(x, y, x+length, y+height); // risk of overflow, can allocate memory with new, but have problems with destructors
@@ -50,6 +50,11 @@ void Paddle::ChangePaddlePosition(float xOffset)
         myShape.right = x + length;
     }
 
+}
+
+float Paddle::GetRadius()
+{
+    return (myShape.top-myShape.bottom) /2;
 }
 
 

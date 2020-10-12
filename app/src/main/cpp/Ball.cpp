@@ -65,9 +65,9 @@ void Ball::AddXandYDirections(float addX, float addY)
         myMovement.directionX += addX;
         if(myMovement.directionX > 1 || myMovement.directionX < -1)
         {
-            myMovement.directionX = myMovement.directionX > 1 + (myMovement.directionX < -1)*(-1);
+            myMovement.directionX = myMovement.directionX >= 1 + (myMovement.directionX < -1)*(-1);
         }
-        sign = (0 < myMovement.directionY) - (myMovement.directionY < 0);
+        sign = (0 <= myMovement.directionY) - (myMovement.directionY < 0);
         myMovement.directionY = (1 - abs(myMovement.directionX))*sign;
     }
 
@@ -76,9 +76,9 @@ void Ball::AddXandYDirections(float addX, float addY)
         myMovement.directionY += addY;
         if (myMovement.directionY > 1 || myMovement.directionY < -1)
         {
-            myMovement.directionY = myMovement.directionY > 1 + (myMovement.directionY < -1)*(-1);
+            myMovement.directionY = myMovement.directionY >= 1 + (myMovement.directionY < -1)*(-1);
         }
-        sign = (0 < myMovement.directionX) - (myMovement.directionX < 0);
+        sign = (0 <= myMovement.directionX) - (myMovement.directionX < 0);
         myMovement.directionX = (1 - abs(myMovement.directionY))*sign;
     }
 }

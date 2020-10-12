@@ -3,22 +3,38 @@
 #include <cmath>
 #include "Paddle.h"
 #include "Ball.h"
+#include "Brick.h"
 
-Paddle playerPaddle;
-Ball ball;
+Paddle *playerPaddle;
+Ball *ball;
 bool offsetSet;
 bool paddleIsTouched;
 float xOffset;
 float xOffsetStart;
 int screenWidth;
 int screenHeight;
+int ballCount;
+int numBricks;
+int numBricksToDestroy; // amount of bricks left to destroy to advance to the next level
+int lives;
+int score;
+Brick *bricks[200];
+Vector2 touchValues;
+//bool collisionWithPaddle; // tried to stop paddle from being able to move into a ball but this doesnt help
 
 float where; // debug value
 
 // =============================== Engine Methods =================================
 
+void SetupLevel(float screenX,float screenY,Paddle playerPaddle);
 int FindSign(float value);
-void CalculateFrame(long fps, float velocity);
+void CheckCollisionsAddDistance(long fps, float velocity);
+void ProcessMinimalStep(long fps, float velocity);
+void AddPositionToBall(long fps, float velocity);
+bool CirclesCollide(float x1, float y1, float r1, float x2, float y2, float r2);
+float CircleDistanceEntered(float x1, float y1, float r1, float x2, float y2, float r2);
+bool CircleRectIntersect(float x, float y, float r, float left, float top, float right, float bottom);
+void MovePaddle(float touchPointX, float touchPointY);
 
 extern "C"
 JNIEXPORT void JNICALL
@@ -27,9 +43,33 @@ Java_com_andrej_breakoutcpp_BreakoutEngine_Init(JNIEnv *env, jobject,
 {
     screenWidth = screenX;
     screenHeight = screenY;
-    playerPaddle = Paddle(screenX, screenY);
-    ball = Ball(screenX, screenY, playerPaddle);
+    playerPaddle = new Paddle(screenX, screenY);
+    lives = 3;
+    score = 0;
+    SetupLevel(screenX, screenY, *playerPaddle);
     where = 0; // debug value
+    //collisionWithPaddle = false;
+}
+
+void SetupLevel(float screenX,float screenY,Paddle playerPaddle)
+{
+    ball = new Ball(screenX, screenY, playerPaddle);
+    ballCount = 1;
+    numBricks = 0;
+
+    float brickWidth = screenWidth/15;
+    float brickHeight = screenHeight/28;
+
+    for (int column = 1; column < 14; column++)
+    {
+        for(int row = 2; row < 10; row++)
+        {
+            bricks[numBricks] = new Brick(row, column, brickWidth, brickHeight, 1);
+            numBricks ++;
+        }
+    }
+    numBricksToDestroy = numBricks;
+
 }
 
 extern "C"
@@ -37,12 +77,15 @@ JNIEXPORT void JNICALL
 Java_com_andrej_breakoutcpp_BreakoutEngine_Update(JNIEnv *env, jobject thiz,
                                                   jlong fps)
 {
-    where = ball.GetMovement().directionX;
-    if(ball.Update(playerPaddle))
+    if(ball->Update(*playerPaddle))
     {
-        CalculateFrame(fps, ball.GetMovement().velocity);
+        ProcessMinimalStep(fps, ball->GetMovement().velocity);
     }
-    //ball.Update(fps, playerPaddle);
+    // tried to stop paddle from being able to move into a ball but this doesnt help
+    /*if(!collisionWithPaddle)
+    {
+        MovePaddle(touchValues.x, touchValues.y);
+    }*/
 }
 
 int FindSign(float value)
@@ -58,72 +101,248 @@ Java_com_andrej_breakoutcpp_BreakoutEngine_DebugValue(JNIEnv *env, jobject thiz,
     return where;
 }
 
-void CalculateFrame(long fps, float velocity)
+// to have linear interpolation of my ball
+void ProcessMinimalStep(long fps, float velocity)
 {
-    float newBallY = ball.GetCircle().yPos+ball.GetCircle().radius*(FindSign(ball.GetMovement().directionY))+ // ball current y bounds
-                     ball.GetMovement().directionY*velocity/fps; // how much it will move on y axis
-    float newBallX = ball.GetCircle().xPos+ball.GetCircle().radius*(FindSign(ball.GetMovement().directionX))+ // ball current x bounds
-                     ball.GetMovement().directionY*velocity/fps;
-    float velocityUsed;
-    // checking if the ball hits top of the screen
-    if(newBallY < 0 )
+    velocity -= screenHeight/40*fps;
+    if (velocity < 0)
     {
-        // velocity this frame used before collision
-        velocityUsed = (ball.GetMovement().directionY*velocity/fps - newBallY)*fps/ball.GetMovement().directionY;
-        // applying all velocity that was used to  come in contact
-        ball.AddPosition(ball.GetMovement().directionX*velocityUsed/fps,ball.GetMovement().directionY*velocityUsed/fps);
-        // reverses ball Y direction
-        ball.AddXandYDirections(0, -ball.GetMovement().directionY*2);
-        // adds random velocity on hit to simulate surface roughness
-        ball.AddRandomVelocityOnHit();
-
-        CalculateFrame(fps, velocity - velocityUsed);
-    }
-    // this should be reasserting the ball and deducting a life
-    else if(newBallY > screenHeight)
-    {
-        // velocity used this frame before collision
-        velocityUsed = (screenHeight - ball.GetCircle().yPos - ball.GetCircle().radius)*fps/ball.GetMovement().directionY;
-        // applying all velocity that was used to  come in contact
-        ball.AddPosition(ball.GetMovement().directionX*velocityUsed/fps,ball.GetMovement().directionY*velocityUsed/fps);
-        // reverses ball Y direction
-        ball.AddXandYDirections(0, -ball.GetMovement().directionY*2);
-        // adds random velocity on hit to simulate surface roughness
-        ball.AddRandomVelocityOnHit();
-
-        CalculateFrame(fps, velocity - velocityUsed);
-    }
-    else if(newBallX < 0)
-    {
-        // velocity this frame used before collision
-        velocityUsed = (ball.GetMovement().directionX*velocity/fps - newBallX)*fps/ball.GetMovement().directionX;
-        // applying all velocity that was used to  come in contact
-        ball.AddPosition(ball.GetMovement().directionX*velocityUsed/fps,ball.GetMovement().directionY*velocityUsed/fps);
-        // reverses ball X direction
-        ball.AddXandYDirections(-ball.GetMovement().directionX*2, 0);
-        // adds random velocity on hit to simulate surface roughness
-        ball.AddRandomVelocityOnHit();
-
-        CalculateFrame(fps, velocity - velocityUsed);
-    }
-    else if (newBallX > screenWidth)
-    {
-        // velocity used this frame before collision
-        velocityUsed = (screenWidth - ball.GetCircle().xPos - ball.GetCircle().radius)*fps/ball.GetMovement().directionX;
-        // applying all velocity that was used to  come in contact
-        ball.AddPosition(ball.GetMovement().directionX*velocityUsed/fps,ball.GetMovement().directionY*velocityUsed/fps);
-        // reverses ball X direction
-        ball.AddXandYDirections(-ball.GetMovement().directionX*2, 0);
-        // adds random velocity on hit to simulate surface roughness
-        ball.AddRandomVelocityOnHit();
-
-        CalculateFrame(fps, velocity - velocityUsed);
+        velocity += screenHeight/40*fps;
+        CheckCollisionsAddDistance(fps, velocity);
     }
     else
     {
-        ball.AddPosition(ball.GetMovement().directionX*velocity/fps,ball.GetMovement().directionY*velocity/fps);
+        CheckCollisionsAddDistance(fps, screenHeight/40*fps);
+        ProcessMinimalStep(fps, velocity);
+    }
+}
+
+void CheckCollisionsAddDistance(long fps, float velocity)
+{
+    /*float newBallYPos = ball->GetCircle().yPos + ball->GetMovement().directionY*velocity/fps; // new ball Y coordinate
+    float newBallXPos = ball->GetCircle().xPos + ball->GetMovement().directionY*velocity/fps; // new ball X coordinate
+    float newBallY = newBallYPos+ball->GetCircle().radius*(FindSign(ball->GetMovement().directionY)); // ball's Y point that will first come in contact
+    float newBallX = newBallXPos+ball->GetCircle().radius*(FindSign(ball->GetMovement().directionX)); // ball's X point that will first come in contact
+    float velocityUsed;*/
+
+    float ballX = ball->GetCircle().xPos;
+    float ballY = ball->GetCircle().yPos;
+
+    // checking for collision with bricks
+    for (int i = 0; i < numBricks; ++i)
+    {
+        if (bricks[i]->GetIsAlive())
+        {
+            if (CircleRectIntersect(ballX, ballY, ball->GetCircle().radius,
+                    bricks[i]->GetRect().left, bricks[i]->GetRect().top, bricks[i]->GetRect().right, bricks[i]->GetRect().bottom))
+            {
+                if(bricks[i]->SubtractLife())
+                {
+                    numBricksToDestroy--;
+                }
+                //firs we need to calculate collision normal
+                float yDistance1 = abs(ballY - bricks[i]->GetRect().top);
+                float yDistance2 = abs(ballY - bricks[i]->GetRect().bottom);
+                float xDistance1 = abs(ballX - bricks[i]->GetRect().right);
+                float xDistance2 = abs(ballX - bricks[i]->GetRect().left);
+                if(yDistance1 <= yDistance2 && yDistance1 <= xDistance1 && yDistance1 <= xDistance2)
+                {
+                    where = 1;
+                    // velocity used this call before collision
+                    //velocityUsed = (bricks[i]->GetRect().top - ball->GetCircle().yPos - ball->GetCircle().radius)*fps/ball->GetMovement().directionY;
+                    ball->AddXandYDirections(0, -ball->GetMovement().directionY*2);
+                    AddPositionToBall(fps, velocity);
+                    return;
+
+                }
+                else if(yDistance2 <= xDistance1 && yDistance2 <= xDistance2)
+                {
+                    where = 2;
+                    //velocityUsed = (bricks[i]->GetRect().bottom - ball->GetCircle().yPos - ball->GetCircle().radius)*fps/ball->GetMovement().directionY;
+                    ball->AddXandYDirections(0, -ball->GetMovement().directionY*2);
+                    AddPositionToBall(fps, velocity);
+                    return;
+                }
+                else if(xDistance1 <= xDistance2)
+                {
+                    where = 3;
+                    //velocityUsed = (bricks[i]->GetRect().right - ball->GetCircle().xPos - ball->GetCircle().radius)*fps/ball->GetMovement().directionX;
+                    ball->AddXandYDirections(-ball->GetMovement().directionX*2, 0);
+                    AddPositionToBall(fps, velocity);
+                    return;
+                }
+                else
+                {
+                    where = 4;
+                    //velocityUsed = (bricks[i]->GetRect().left - ball->GetCircle().xPos - ball->GetCircle().radius)*fps/ball->GetMovement().directionX;
+                    ball->AddXandYDirections(-ball->GetMovement().directionX*2, 0);
+                    AddPositionToBall(fps, velocity);
+                    return;
+                }
+            }
+        }
     }
 
+    // checking if the ball is within playerPaddle bounding region
+    if ((ballX+ball->GetCircle().radius < playerPaddle->GetRect().right + playerPaddle->GetRadius() &&
+    ballX+ball->GetCircle().radius > playerPaddle->GetRect().left - playerPaddle->GetRadius()) ||
+    (ballX-ball->GetCircle().radius < playerPaddle->GetRect().right + playerPaddle->GetRadius() &&
+    ballX-ball->GetCircle().radius > playerPaddle->GetRect().left - playerPaddle->GetRadius()))
+    {
+        float xDistance;
+        float yDistance;
+        float fullVector;
+        //When its within we check for collision
+        // Checking rectangle
+        if(CircleRectIntersect(ballX, ballY, ball->GetCircle().radius,
+                playerPaddle->GetRect().left, playerPaddle->GetRect().top, playerPaddle->GetRect().right, playerPaddle->GetRect().bottom))
+        {
+            //collisionWithPaddle = true;
+            // velocity used this call before collision
+            //velocityUsed = (playerPaddle->GetRect().bottom - ball->GetCircle().yPos - ball->GetCircle().radius)*fps/ball->GetMovement().directionY;
+            // applying all velocity that was used to  come in contact
+            ball->AddXandYDirections(0, -ball->GetMovement().directionY*2);
+            ball->AddRandomVelocityOnHit();
+            ball->AddVelocity(10);
+            AddPositionToBall(fps, velocity);
+            return;
+        }
+        // Checking if the ball hit left round side
+        else if (CirclesCollide(ballX, ballY,ball->GetCircle().radius,
+                                playerPaddle->GetRect().left, playerPaddle->GetRect().top-playerPaddle->GetRadius(), playerPaddle->GetRadius()))
+        {
+            //collisionWithPaddle = true;
+            // velocity used this call before collision
+            //velocityUsed = velocity - CircleDistanceEntered(newBallXPos, newBallYPos,ball->GetCircle().radius, playerPaddle->GetRect().left, playerPaddle->GetRect().top-playerPaddle->GetRadius(), playerPaddle->GetRadius());
+
+            xDistance = ballX - playerPaddle->GetRect().left;
+            yDistance = ballY - playerPaddle->GetRect().top-playerPaddle->GetRadius();
+            fullVector = abs(xDistance + yDistance);
+            ball->AddXandYDirections(xDistance/fullVector, 2*(yDistance/fullVector));
+
+            ball->AddVelocity(10);
+
+            AddPositionToBall(fps, velocity);
+
+            return;
+        }
+        // Checking if the ball hit right round side, this one is broken somehow
+        else if (CirclesCollide(ballX, ballY,ball->GetCircle().radius,
+                                playerPaddle->GetRect().right, playerPaddle->GetRect().top-playerPaddle->GetRadius(), playerPaddle->GetRadius()))
+        {
+            //collisionWithPaddle = true;
+            // velocity used this call before collision
+            //velocityUsed = velocity - CircleDistanceEntered(newBallXPos, newBallYPos,ball->GetCircle().radius,playerPaddle->GetRect().right, playerPaddle->GetRect().top-playerPaddle->GetRadius(), playerPaddle->GetRadius());
+
+            // add to direction vector
+            xDistance = ballX - playerPaddle->GetRect().right;
+            yDistance = ballY - playerPaddle->GetRect().top-playerPaddle->GetRadius();
+            fullVector = abs(xDistance + yDistance);
+            ball->AddXandYDirections(xDistance/fullVector, 2*(yDistance/fullVector));
+
+            ball->AddVelocity(10);
+
+            AddPositionToBall(fps, velocity);
+            return;
+        }
+
+    }
+    //collisionWithPaddle = false;
+    // checking if the ball hits top of the screen
+    if(newBallY < 0 )
+    {
+        // velocity this call used before collision
+        velocityUsed = (ball->GetMovement().directionY*velocity/fps - newBallY)*fps/ball->GetMovement().directionY;
+        // applying all velocity that was used to  come in contact
+        AddPositionToBall(fps, velocityUsed);
+        // reverses ball Y direction
+        ball->AddXandYDirections(0, -ball->GetMovement().directionY*2);
+        // adds random velocity on hit to simulate surface roughness
+        ball->AddRandomVelocityOnHit();
+
+        CheckCollisionsAddDistance(fps, velocity - velocityUsed);
+        return;
+    }
+    // this should be reasserting the ball and deducting a life
+    if(newBallY > screenHeight)
+    {
+        ballCount--;
+        delete ball;
+        if (ballCount <= 0)
+        {
+            ball = new Ball(screenWidth, screenHeight, *playerPaddle);
+            ballCount++;
+        }
+        return;
+    }
+    if(newBallX < 0)
+    {
+        // velocity this call used before collision
+        velocityUsed = (ball->GetMovement().directionX*velocity/fps - newBallX)*fps/ball->GetMovement().directionX;
+        // applying all velocity that was used to  come in contact
+        AddPositionToBall(fps, velocityUsed);
+        // reverses ball X direction
+        ball->AddXandYDirections(-ball->GetMovement().directionX*2, 0);
+        // adds random velocity on hit to simulate surface roughness
+        ball->AddRandomVelocityOnHit();
+
+        CheckCollisionsAddDistance(fps, velocity - velocityUsed);
+        return;
+    }
+    if (newBallX > screenWidth)
+    {
+        // velocity used this call before collision
+        velocityUsed = (screenWidth - ball->GetCircle().xPos - ball->GetCircle().radius)*fps/ball->GetMovement().directionX;
+        // applying all velocity that was used to  come in contact
+        AddPositionToBall(fps, velocityUsed);
+        // reverses ball X direction
+        ball->AddXandYDirections(-ball->GetMovement().directionX*2, 0);
+        // adds random velocity on hit to simulate surface roughness
+        ball->AddRandomVelocityOnHit();
+
+        CheckCollisionsAddDistance(fps, velocity - velocityUsed);
+        return;
+    }
+
+    AddPositionToBall(fps, velocity);
+
+}
+
+bool CircleRectIntersect(float x, float y, float r, float left, float top, float right, float bottom)
+{
+    float distanceSQToBottomLeft = pow((x - left),2) + pow((y - bottom),2);
+    float distanceSQToBottomRight = pow((x - right),2) + pow((y - bottom),2);
+    float distanceSQToTopLeft = pow((x - left),2) + pow((y - top),2);
+    float distanceSQToTopRight = pow((x - right),2) + pow((y - top),2);
+    float radiusSq = r*r;
+    return (x < right && x > left  && y < top && y > bottom) ||
+            (distanceSQToBottomLeft <= radiusSq) || (distanceSQToBottomRight <= radiusSq) ||
+            (distanceSQToTopLeft <= radiusSq) || (distanceSQToTopRight <= radiusSq);
+}
+
+bool CirclesCollide(float x1, float y1, float r1, float x2, float y2, float r2)
+{
+    float x = x1 - x2;
+    float y = y1 - y2;
+    float distanceSq = x*x + y*y;
+    float radius = r1 + r2;
+    float radiusSq = radius*radius;
+    return distanceSq <= radiusSq;
+}
+
+float CircleDistanceEntered(float x1, float y1, float r1, float x2, float y2, float r2)
+{
+    float x = x1 - x2;
+    float y = y1 - y2;
+    float distanceSq = x*x + y*y;
+    float radius = r1 + r2;
+    float radiusSq = radius*radius;
+    return sqrt(radiusSq-distanceSq);
+}
+
+void AddPositionToBall(long fps, float velocity)
+{
+    ball->AddPosition(ball->GetMovement().directionX*velocity/fps,ball->GetMovement().directionY*velocity/fps);
 }
 
 
@@ -140,8 +359,8 @@ JNIEXPORT void JNICALL
 Java_com_andrej_breakoutcpp_BreakoutEngine_TouchListener(JNIEnv *env, jobject thiz,
                                                          jfloat touchPointX, jfloat touchPointY)
 {
-    if (!paddleIsTouched && touchPointX < playerPaddle.GetRect().right + 90 && touchPointX > playerPaddle.GetRect().left - 90
-        && touchPointY < playerPaddle.GetRect().top + 90 && touchPointY > playerPaddle.GetRect().bottom - 90)
+    if (!paddleIsTouched && touchPointX < playerPaddle->GetRect().right + 90 && touchPointX > playerPaddle->GetRect().left - 90
+     && touchPointY < playerPaddle->GetRect().top + 90 && touchPointY > playerPaddle->GetRect().bottom - 90)
     {
         paddleIsTouched = true;
     }
@@ -158,10 +377,12 @@ Java_com_andrej_breakoutcpp_BreakoutEngine_TouchListener(JNIEnv *env, jobject th
         {
             xOffset = xOffsetStart - touchPointX;
         }
-        playerPaddle.ChangePaddlePosition(xOffset);
+        playerPaddle->ChangePaddlePosition(xOffset);
         xOffsetStart = touchPointX;
     }
-
+    // used this before to try to prevent the paddle from moving into the ball
+    //touchValues.x = touchPointX;
+    //touchValues.y = touchPointY;
 }
 
 extern "C"
@@ -172,41 +393,78 @@ Java_com_andrej_breakoutcpp_BreakoutEngine_SetPaddleIsTouched(JNIEnv *env, jobje
     paddleIsTouched = value;
 }
 
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_andrej_breakoutcpp_BreakoutEngine_Destroy(JNIEnv *env, jobject thiz)
+{
+    delete playerPaddle;
+    delete ball;
+    for(int i = 0; i < numBricks; i++)
+    {
+        delete bricks[i];
+    }
+}
+
 // =============================== Player Methods =================================
+
+void MovePaddle(float touchPointX, float touchPointY)
+{
+    if (!paddleIsTouched && touchPointX < playerPaddle->GetRect().right + 90 && touchPointX > playerPaddle->GetRect().left - 90
+        && touchPointY < playerPaddle->GetRect().top + 90 && touchPointY > playerPaddle->GetRect().bottom - 90)
+    {
+        paddleIsTouched = true;
+    }
+
+    if (paddleIsTouched)
+    {
+        if(!offsetSet)
+        {
+            xOffset = 0;
+            offsetSet = true;
+            xOffsetStart = touchPointX;
+        }
+        else
+        {
+            xOffset = xOffsetStart - touchPointX;
+        }
+        playerPaddle->ChangePaddlePosition(xOffset);
+        xOffsetStart = touchPointX;
+    }
+}
 
 extern "C"
 JNIEXPORT jfloat JNICALL
 Java_com_andrej_breakoutcpp_BreakoutEngine_GetPlayerTop(JNIEnv *env, jobject thiz)
 {
-    return playerPaddle.GetRect().top;
+    return playerPaddle->GetRect().top;
 }
 
 extern "C"
 JNIEXPORT jfloat JNICALL
 Java_com_andrej_breakoutcpp_BreakoutEngine_GetPlayerLeft(JNIEnv *env, jobject thiz)
 {
-    return playerPaddle.GetRect().left;
+    return playerPaddle->GetRect().left;
 }
 
 extern "C"
 JNIEXPORT jfloat JNICALL
 Java_com_andrej_breakoutcpp_BreakoutEngine_GetPlayerRight(JNIEnv *env, jobject thiz)
 {
-    return playerPaddle.GetRect().right;
+    return playerPaddle->GetRect().right;
 }
 
 extern "C"
 JNIEXPORT jfloat JNICALL
 Java_com_andrej_breakoutcpp_BreakoutEngine_GetPlayerBottom(JNIEnv *env, jobject thiz)
 {
-    return playerPaddle.GetRect().bottom;
+    return playerPaddle->GetRect().bottom;
 }
 
 extern "C"
 JNIEXPORT jfloat JNICALL
 Java_com_andrej_breakoutcpp_BreakoutEngine_GetPlayerRadius(JNIEnv *env, jobject thiz)
 {
-    return (playerPaddle.GetRect().top - playerPaddle.GetRect().bottom) /2;
+    return playerPaddle->GetRadius();
 }
 
 extern "C"
@@ -214,10 +472,10 @@ JNIEXPORT void JNICALL
 Java_com_andrej_breakoutcpp_BreakoutEngine_LaunchBall(JNIEnv *env, jobject thiz,
                                                       jlong holdTime)
 {
-    if(holdTime <= 150 && !ball.GetBallLaunched())
+    if(holdTime <= 150 && !ball->GetBallLaunched())
     {
-        ball.SetBallLaunched(true);
-        ball.AddVelocity(1000);
+        ball->SetBallLaunched(true);
+        ball->AddVelocity(500);
     }
 }
 
@@ -227,19 +485,63 @@ extern "C"
 JNIEXPORT jfloat JNICALL
 Java_com_andrej_breakoutcpp_BreakoutEngine_GetBallXPos(JNIEnv *env, jobject thiz)
 {
-    return ball.GetCircle().xPos;
+    return ball->GetCircle().xPos;
 }
 
 extern "C"
 JNIEXPORT jfloat JNICALL
 Java_com_andrej_breakoutcpp_BreakoutEngine_GetBallYPos(JNIEnv *env, jobject thiz)
 {
-    return ball.GetCircle().yPos;
+    return ball->GetCircle().yPos;
 }
 
 extern "C"
 JNIEXPORT jfloat JNICALL
 Java_com_andrej_breakoutcpp_BreakoutEngine_GetBallRadius(JNIEnv *env, jobject thiz)
 {
-    return ball.GetCircle().radius;
+    return ball->GetCircle().radius;
+}
+
+// ================================ Brick Methods ==================================
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_andrej_breakoutcpp_BreakoutEngine_GetNumBricks(JNIEnv *env, jobject thiz)
+{
+    return numBricks;
+}
+
+extern "C"
+JNIEXPORT jboolean JNICALL
+Java_com_andrej_breakoutcpp_BreakoutEngine_GetIsAlive(JNIEnv *env, jobject thiz, jint index)
+{
+    return bricks[index]->GetIsAlive();
+}
+
+extern "C"
+JNIEXPORT jfloat JNICALL
+Java_com_andrej_breakoutcpp_BreakoutEngine_GetBrickTop(JNIEnv *env, jobject thiz, jint index)
+{
+    return bricks[index]->GetRect().top;
+}
+
+extern "C"
+JNIEXPORT jfloat JNICALL
+Java_com_andrej_breakoutcpp_BreakoutEngine_GetBrickLeft(JNIEnv *env, jobject thiz, jint index)
+{
+    return bricks[index]->GetRect().left;
+}
+
+extern "C"
+JNIEXPORT jfloat JNICALL
+Java_com_andrej_breakoutcpp_BreakoutEngine_GetBrickRight(JNIEnv *env, jobject thiz, jint index)
+{
+    return bricks[index]->GetRect().right;
+}
+
+extern "C"
+JNIEXPORT jfloat JNICALL
+Java_com_andrej_breakoutcpp_BreakoutEngine_GetBrickBottom(JNIEnv *env, jobject thiz, jint index)
+{
+    return bricks[index]->GetRect().bottom;
 }

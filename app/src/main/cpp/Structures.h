@@ -12,4 +12,9 @@ enum movement
     Right = 2
 };
 
+typedef struct
+{
+    float x = 0, y = 0;
+}Vector2;
+
 #endif //BREAKOUTCPP_STRUCTURES_H
