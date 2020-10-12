@@ -13,6 +13,8 @@ private:
 public:
     Rect();
     Rect(float leftX, float bottomY, float rightX, float topY);
+    float GetWidth();
+    float GetHeight();
     float bottom;
     float left;
     float right;

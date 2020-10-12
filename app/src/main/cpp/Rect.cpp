@@ -16,6 +16,16 @@ Rect::Rect(float leftX, float bottomY, float rightX, float topY)
     top = topY;
 }
 
+float Rect::GetWidth()
+{
+    return right - left;
+}
+
+float Rect::GetHeight()
+{
+    return top - bottom;
+}
+
 /*Rect::~Rect()
 {
 
