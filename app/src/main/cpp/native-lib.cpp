@@ -20,6 +20,7 @@ int numBricksToDestroy; // amount of bricks left to destroy to advance to the ne
 int lives;
 int score;
 bool brickBreaking;
+bool shouldAppRun;
 Brick *bricks[200];
 Button *btnRestart;
 Button *btnQuit;
@@ -63,8 +64,9 @@ void Init(int screenX, int screenY)
     score = 0;
     SetupLevel(screenX, screenY, *playerPaddle);
     brickBreaking = true;
+    shouldAppRun = true;
     btnRestart = new Button(40, 530, 310, 100, "Restart?", 80);
-    btnQuit = new Button(40, 700, 310, 100, "Quit?", 80);
+    btnQuit = new Button(40, 660, 195, 100, "Quit?", 80);
 
     where = 0; // debug value
 }
@@ -105,6 +107,7 @@ Java_com_andrej_breakoutcpp_BreakoutEngine_Update(JNIEnv *env, jobject thiz,
         Destroy();
         playerPaddle = new Paddle(screenWidth, screenHeight);
         btnRestart = new Button(40, 530, 310, 100, "Restart?", 80);
+        btnQuit = new Button(40, 660, 310, 100, "Quit?", 80);
         SetupLevel(screenWidth, screenHeight, *playerPaddle);
     }
 }
@@ -396,6 +399,10 @@ Java_com_andrej_breakoutcpp_BreakoutEngine_ButtonTouchListener(JNIEnv *env, jobj
         {
             RestartGame();
         }
+        if(CircleRectIntersect(Circle(touchPointX, touchPointY, 0), btnQuit->GetRect()))
+        {
+            shouldAppRun = false;
+        }
     }
 }
 
@@ -447,9 +454,16 @@ Java_com_andrej_breakoutcpp_BreakoutEngine_GetScore(JNIEnv *env, jobject thiz)
 
 extern "C"
 JNIEXPORT jboolean JNICALL
-Java_com_andrej_breakoutcpp_BreakoutEngine_BrickBracking(JNIEnv *env, jobject thiz)
+Java_com_andrej_breakoutcpp_BreakoutEngine_BrickBreaking(JNIEnv *env, jobject thiz)
 {
     return brickBreaking;
+}
+
+extern "C"
+JNIEXPORT jboolean JNICALL
+Java_com_andrej_breakoutcpp_BreakoutEngine_ShouldAppBeRunning(JNIEnv *env, jobject thiz)
+{
+    return shouldAppRun;
 }
 
 // =============================== Player Methods =================================

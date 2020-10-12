@@ -87,7 +87,7 @@ public class BreakoutEngine extends SurfaceView implements Runnable
 
             if (!paused)
             {
-                if(BrickBracking())
+                if(BrickBreaking())
                 {
                     Update(fps);
                 }
@@ -100,6 +100,11 @@ public class BreakoutEngine extends SurfaceView implements Runnable
             {
                 fps = 1000 / timeThisFrame;
             }
+
+            if(!ShouldAppBeRunning())
+            {
+                MainActivity.getInstance().finish();
+            }
         }
     }
 
@@ -110,7 +115,7 @@ public class BreakoutEngine extends SurfaceView implements Runnable
             canvas = ourHolder.lockCanvas();
 
 
-            if(!BrickBracking())
+            if(BrickBreaking())
             {
                 // Set canvas color to blue
                 canvas.drawColor(Color.argb(255,26,128,182));
@@ -158,14 +163,14 @@ public class BreakoutEngine extends SurfaceView implements Runnable
                 canvas.drawRect(GetButtonRestartLeft(), GetButtonRestartTop(), GetButtonRestartRight(), GetButtonRestartBottom(), paint);
                 paint.setColor(Color.argb(255, 255, 255, 255));
                 paint.setTextSize(GetButtonRestartTextSize());
-                canvas.drawText(GetButtonRestartText(), GetButtonRestartLeft(), GetButtonRestartTop() - 24, paint);
+                canvas.drawText(GetButtonRestartText(), GetButtonRestartLeft() + 5, GetButtonRestartTop() - 24, paint);
 
                 // Draw Quit button
                 paint.setColor(Color.argb(255, 249, 129, 0));
                 canvas.drawRect(GetButtonQuitLeft(), GetButtonQuitTop(), GetButtonQuitRight(), GetButtonQuitBottom(), paint);
                 paint.setColor(Color.argb(255, 255, 255, 255));
                 paint.setTextSize(GetButtonRestartTextSize());
-                canvas.drawText(GetButtonQuitText(), GetButtonQuitLeft(), GetButtonQuitTop() - 24, paint);
+                canvas.drawText(GetButtonQuitText(), GetButtonQuitLeft() + 5, GetButtonQuitTop() - 24, paint);
 
             }
 
@@ -234,7 +239,8 @@ public class BreakoutEngine extends SurfaceView implements Runnable
     public native int GetLives();
     public native int GetScore();
     public native void Destroy();
-    public native boolean BrickBracking(); // returns true if we havent lost yet
+    public native boolean BrickBreaking(); // returns true if we havent lost yet
+    public native boolean ShouldAppBeRunning();
 
     // player methods
     public native float GetPlayerTop();

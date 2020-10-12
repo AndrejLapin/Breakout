@@ -22,6 +22,7 @@ public class MainActivity extends Activity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        instance = this;
 
         Display display = getWindowManager().getDefaultDisplay();
         Point size = new Point();
@@ -60,8 +61,18 @@ public class MainActivity extends Activity
         breakoutEngine.destroy();
     }
 
-    /**
-     * A native method that is implemented by the 'native-lib' native library,
-     * which is packaged with this application.
-     */
+    @Override
+    protected void onStop()
+    {
+        super.onStop();
+
+        breakoutEngine.destroy();
+    }
+
+    private static MainActivity instance;
+
+    public static MainActivity getInstance()
+    {
+        return instance;
+    }
 }
