@@ -4,6 +4,8 @@
 
 Engine *engine;
 
+void RestartGame();
+
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_andrej_breakoutcpp_BreakoutEngine_Init(JNIEnv *env, jobject,
@@ -46,13 +48,13 @@ Java_com_andrej_breakoutcpp_BreakoutEngine_ButtonTouchListener(JNIEnv *env, jobj
     engine->ButtonTouchListener(touchPointX, touchPointY);
 }
 
+// might still be useful
 void RestartGame()
 {
     engine->Destroy();
     int screenX = engine->GetScreenParameters().x;
     int screenY = engine->GetScreenParameters().y;
-    delete engine;
-    engine = new Engine(screenX, screenY);
+    engine->SetupLevel(screenX, screenY);
 }
 
 extern "C"
@@ -179,7 +181,7 @@ extern "C"
 JNIEXPORT jboolean JNICALL
 Java_com_andrej_breakoutcpp_BreakoutEngine_GetIsAlive(JNIEnv *env, jobject thiz, jint index)
 {
-    return engine->GetIsAlive();
+    return engine->GetIsAlive(index);
 }
 
 extern "C"
@@ -234,7 +236,7 @@ extern "C"
 JNIEXPORT jfloat JNICALL
 Java_com_andrej_breakoutcpp_BreakoutEngine_GetButtonRestartBottom(JNIEnv *env, jobject thiz)
 {
-    return engine->GetBUttonRestartBottom();
+    return engine->GetButtonRestartBottom();
 }
 extern "C"
 JNIEXPORT jstring JNICALL

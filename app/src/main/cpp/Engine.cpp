@@ -26,7 +26,6 @@ Engine::Engine(int screenX, int screenY)
     lives = 3;
     score = 0;
     SetupLevel(screenX, screenY);
-    brickBreaking = true;
     shouldAppRun = true;
     btnRestart = new Button(40, 530, 310, 100, "Restart?", 80);
     btnQuit = new Button(40, 660, 195, 100, "Quit?", 80);
@@ -34,6 +33,7 @@ Engine::Engine(int screenX, int screenY)
 
 void Engine::SetupLevel(int screenX, int screenY)
 {
+    brickBreaking = true;
     ball = new Ball(screenX, screenY, *playerPaddle);
     ballCount = 1;
     numBricks = 0;
@@ -316,7 +316,8 @@ void Engine::ButtonTouchListener(float touchPointX, float touchPointY)
     {
         if(CircleRectIntersect(Circle(touchPointX, touchPointY, 0), btnRestart->GetRect()))
         {
-            RestartGame();
+            Destroy();
+            SetupLevel(screenWidth, screenHeight);
         }
         if(CircleRectIntersect(Circle(touchPointX, touchPointY, 0), btnQuit->GetRect()))
         {
@@ -374,14 +375,6 @@ bool Engine::ShouldAppBeRunning()
 
 void Engine::MovePaddle(float touchPointX, float touchPointY)
 {
-    if (!paddleIsTouched && touchPointX < playerPaddle->GetRect().right + 90 && touchPointX > playerPaddle->GetRect().left - 90
-        && touchPointY < playerPaddle->GetRect().top + 90 && touchPointY > playerPaddle->GetRect().bottom - 90)
-    {
-        paddleIsTouched = true;
-    }
-
-    if (paddleIsTouched)
-    {
         if(!offsetSet)
         {
             xOffset = 0;
@@ -394,7 +387,6 @@ void Engine::MovePaddle(float touchPointX, float touchPointY)
         }
         playerPaddle->ChangePaddlePosition(xOffset);
         xOffsetStart = touchPointX;
-    }
 }
 
 float Engine::GetPlayerTop()
@@ -497,7 +489,7 @@ float Engine::GetButtonRestartRight()
     return btnRestart->GetRect().right;
 }
 
-float Engine::GetBUttonRestartBottom()
+float Engine::GetButtonRestartBottom()
 {
     return btnRestart->GetRect().bottom;
 }

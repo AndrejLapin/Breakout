@@ -14,8 +14,9 @@ enum movement
 
 enum menuOptions
 {
-    Restart = 0,
-    Exit = 1
+    NoOption = 0,
+    Restart = 1,
+    Exit = 2
 };
 
 typedef struct Vector2

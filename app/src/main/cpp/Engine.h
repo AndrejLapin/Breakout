@@ -81,7 +81,7 @@ public:
     float GetButtonRestartTop();
     float GetButtonRestartLeft();
     float GetButtonRestartRight();
-    float GetBUttonRestartBottom();
+    float GetButtonRestartBottom();
     std::string GetButtonRestartText();
     int GetButtonRestartTextSize();
 
