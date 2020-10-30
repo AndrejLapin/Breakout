@@ -235,7 +235,6 @@ public class BreakoutEngine extends SurfaceView implements Runnable
     public native void TouchListener(float touchPointX, float touchPointY);
     public native void ButtonTouchListener(float touchPointX, float touchPointY);
     public native void SetPaddleIsTouched(boolean value);
-    public native float DebugValue(float value);
     public native int GetLives();
     public native int GetScore();
     public native void Destroy();

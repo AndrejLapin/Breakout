@@ -12,9 +12,21 @@ enum movement
     Right = 2
 };
 
-typedef struct
+enum menuOptions
+{
+    Restart = 0,
+    Exit = 1
+};
+
+typedef struct Vector2
 {
     float x = 0, y = 0;
-}Vector2;
+
+    Vector2(float xCord, float yCord)
+    {
+        x = xCord;
+        y = yCord;
+    }
+};
 
 #endif //BREAKOUTCPP_STRUCTURES_H

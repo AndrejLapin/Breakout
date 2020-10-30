@@ -343,6 +343,7 @@ void Engine::Destroy()
     delete playerPaddle;
     delete ball;
     delete btnRestart;
+    delete btnQuit;
     for(int i = 0; i < numBricks; i++)
     {
         delete bricks[i];
@@ -401,7 +402,7 @@ float Engine::GetPlayerTop()
     return playerPaddle->GetRect().top;
 }
 
-float Engine::GetPlaerLeft()
+float Engine::GetPlayerLeft()
 {
     return playerPaddle->GetRect().left;
 }
@@ -540,6 +541,11 @@ std::string Engine::GetButtonQuitText()
 int Engine::GetButtonQuitTextSize()
 {
     return btnQuit->GetTextSize();
+}
+
+Vector2 Engine::GetScreenParameters()
+{
+    return Vector2(screenWidth, screenHeight);
 }
 
 

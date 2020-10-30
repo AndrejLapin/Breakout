@@ -53,11 +53,12 @@ public:
     int GetScore();
     bool BrickBreaking();
     bool ShouldAppBeRunning();
+    Vector2 GetScreenParameters();
 
     // Player specific methods
     void MovePaddle(float touchPointX, float touchPointY);
     float GetPlayerTop();
-    float GetPlaerLeft();
+    float GetPlayerLeft();
     float GetPlayerRight();
     float GetPlayerBottom();
     float GetPlayerRadius();
